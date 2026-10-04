@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Caça aos Mosquitos</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #101820;
+    color: white;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* Painel superior */
+#topo {
+    height: 80px;
+    background: #182633;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 20px;
+    border-bottom: 3px solid #2b3e50;
+}
+
+.info {
+    text-align: center;
+}
+
+.valor {
+    font-size: 28px;
+    font-weight: bold;
+}
+
+/* Área do jogo */
+#jogo {
+    position: relative;
+    width: 100vw;
+    height: calc(100vh - 80px);
+    background:
+        radial-gradient(circle at 20% 20%, #203d32 0%, transparent 25%),
+        radial-gradient(circle at 80% 70%, #1d3540 0%, transparent 30%),
+        #14231e;
+    overflow: hidden;
+}
+
+/* Mosquito */
+.mosquito {
+    position: absolute;
+    width: 55px;
+    height: 55px;
+    cursor: pointer;
+    font-size: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.08s;
+    z-index: 10;
+}
+
+.mosquito:hover {
+    transform: scale(1.15);
+}
+
+.mosquito:active {
+    transform: scale(0.7);
+}
+
+/* Efeito quando acerta */
+.explosao {
+    position: absolute;
+    font-size: 35px;
+    pointer-events: none;
+    animation: sumir 0.5s forwards;
+}
+
+@keyframes sumir {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(2);
+    }
+}
+
+/* Tela inicial */
+#inicio {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 10, 15, 0.95);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+#inicio h1 {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+#inicio p {
+    font-size: 20px;
+    color: #c9d4dc;
+}
+
+button {
+    margin-top: 25px;
+    padding: 15px 35px;
+    font-size: 20px;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    background: #35c759;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #28a745;
+    transform: scale(1.05);
+}
+
+/* Game over */
+#gameOver {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 10, 15, 0.95);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+#gameOver h1 {
+    font-size: 50px;
+    color: #ff5252;
+}
+
+#resultado {
+    font-size: 25px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Tela inicial -->
+<div id="inicio">
+
+    <h1>🦟 CAÇA AOS MOSQUITOS 🦟</h1>
+
+    <p>
+        Clique nos mosquitos antes que eles desapareçam!
+    </p>
+
+    <p>
+        Você tem <b>30 segundos</b>.
+    </p>
+
+    <button onclick="iniciarJogo()">
+        COMEÇAR
+    </button>
+
+</div>
+
+
+<!-- Painel -->
+<div id="topo">
+
+    <div class="info">
+        Pontos
+        <div class="valor" id="pontos">0</div>
+    </div>
+
+    <div class="info">
+        Tempo
+        <div class="valor" id="tempo">30</div>
+    </div>
+
+    <div class="info">
+        Mosquitos
+        <div class="valor" id="mosquitos">0</div>
+    </div>
+
+</div>
+
+
+<!-- Área do jogo -->
+<div id="jogo"></div>
+
+
+<!-- Game Over -->
+<div id="gameOver">
+
+    <h1>🦟 FIM DE JOGO!</h1>
+
+    <div id="resultado"></div>
+
+    <button onclick="iniciarJogo()">
+        JOGAR NOVAMENTE
+    </button>
+
+</div>
+
+
+<script>
+
+const jogo = document.getElementById("jogo");
+const pontosTexto = document.getElementById("pontos");
+const tempoTexto = document.getElementById("tempo");
+const mosquitosTexto = document.getElementById("mosquitos");
+
+const inicio = document.getElementById("inicio");
+const gameOver = document.getElementById("gameOver");
+const resultado = document.getElementById("resultado");
+
+let pontos = 0;
+let tempo = 30;
+let quantidade = 0;
+
+let intervaloMosquito;
+let intervaloTempo;
+
+let jogando = false;
+
+
+// Inicia o jogo
+function iniciarJogo() {
+
+    // Limpa mosquitos antigos
+    jogo.innerHTML = "";
+
+    pontos = 0;
+    tempo = 30;
+    quantidade = 0;
+
+    jogando = true;
+
+    pontosTexto.textContent = pontos;
+    tempoTexto.textContent = tempo;
+    mosquitosTexto.textContent = quantidade;
+
+    inicio.style.display = "none";
+    gameOver.style.display = "none";
+
+
+    // Cria mosquitos continuamente
+    intervaloMosquito = setInterval(criarMosquito, 650);
+
+    // Contador
+    intervaloTempo = setInterval(() => {
+
+        tempo--;
+
+        tempoTexto.textContent = tempo;
+
+        if (tempo <= 0) {
+            finalizarJogo();
+        }
+
+    }, 1000);
+}
+
+
+// Cria um mosquito
+function criarMosquito() {
+
+    if (!jogando) return;
+
+    const mosquito = document.createElement("div");
+
+    mosquito.className = "mosquito";
+
+    mosquito.textContent = "🦟";
+
+    // Posição aleatória
+    const largura = jogo.clientWidth - 60;
+    const altura = jogo.clientHeight - 60;
+
+    const x = Math.random() * largura;
+    const y = Math.random() * altura;
+
+    mosquito.style.left = x + "px";
+    mosquito.style.top = y + "px";
+
+
+    // Clique no mosquito
+    mosquito.onclick = function(event) {
+
+        event.stopPropagation();
+
+        acertouMosquito(mosquito);
+
+    };
+
+
+    jogo.appendChild(mosquito);
+
+    quantidade++;
+
+    mosquitosTexto.textContent = quantidade;
+
+
+    // Se não clicar rapidamente, ele foge
+    setTimeout(() => {
+
+        if (mosquito.parentElement) {
+
+            mosquito.remove();
+
+        }
+
+    }, 1800);
+}
+
+
+// Quando o jogador acerta
+function acertouMosquito(mosquito) {
+
+    if (!jogando) return;
+
+
+    pontos++;
+
+    pontosTexto.textContent = pontos;
+
+
+    // Efeito
+    const efeito = document.createElement("div");
+
+    efeito.className = "explosao";
+
+    efeito.textContent = "💥";
+
+    efeito.style.left = mosquito.style.left;
+    efeito.style.top = mosquito.style.top;
+
+    jogo.appendChild(efeito);
+
+
+    mosquito.remove();
+
+
+    setTimeout(() => {
+
+        efeito.remove();
+
+    }, 500);
+}
+
+
+// Finaliza
+function finalizarJogo() {
+
+    jogando = false;
+
+    clearInterval(intervaloMosquito);
+    clearInterval(intervaloTempo);
+
+
+    // Remove mosquitos
+    jogo.innerHTML = "";
+
+
+    resultado.innerHTML =
+        "Você eliminou <b>" + pontos +
+        "</b> mosquito(s)!<br><br>" +
+        "Pontuação final: <b>" + pontos + "</b>";
+
+
+    gameOver.style.display = "flex";
+}
+
+</script>
+
+</body>
+  </html>
